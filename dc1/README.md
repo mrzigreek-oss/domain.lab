@@ -59,32 +59,39 @@ $gpoDir = "C:\GPO"
 $domain = "domain.lab"
 $domainCN = "DC=domain,DC=lab"
 $sysvol = "C:\Windows\SYSVOL\sysvol\$domain"
+```
 
-# Копирование административных шаблонов и модулей PowerShell
+#### Копирование административных шаблонов и модулей PowerShell
+```powershell
 Copy-Item "$gpoDir\PolicyDefinitions" -Destination "$sysvol\Policies\" -Recurse
 Copy-Item "$gpoDir\PSModules\*" -Destination "C:\Program Files\WindowsPowerShell\Modules" -Recurse -Force
+```
 
-# Создание WMI фильтров
+#; Создание WMI фильтров
 
 ### Для обновлённых серверов сборки после 2023 года в моём случае - 21H2 20348.4529 дополнительно ввести команды:
-## Разрешаем запуск локальных скриптов без подписи
+#### Разрешаем запуск локальных скриптов без подписи
+```powershell
 Set-ExecutionPolicy RemoteSigned -Force
-## Снимаем блокировку со всех файлов в папке модулей:
+#### Снимаем блокировку со всех файлов в папке модулей:
 Get-ChildItem -Path "C:\Program Files\WindowsPowerShell\Modules" -Recurse | Unblock-File
-
 Import-Module -Name GPWmiFilter
 New-GPWmiFilter -Name 'Windows 10/11' -Expression 'SELECT * FROM Win32_OperatingSystem WHERE Version LIKE "10.%" AND ProductType = "1"'
-New-GPWmiFilter -Name 'Windows Servers (2019-2025)' -Expression 'SELECT * FROM Win32_OperatingSystem WHERE Version LIKE "10.%" AND ProductType <> 1'
+New-GPWmiFilter -Name 'Windows Servers (2019-2025)' -Expression 'SELECT * FROM Win32_OperatingSystem WHERE Version LIKE "10.%" AND ProductType <> 1
+```
 
-# Импорт GPO MSFT
+#### Импорт GPO MSFT
+```powershell
 Import-GPO -BackupId "{DD304A7D-15A7-42B7-AB52-2338F4ECE2C7}" -Path "$gpoDir\MSFT" -TargetName "MSFT Windows 10 21H2 - Computer" -CreateIfNeeded | Out-Null
 Import-GPO -BackupId "{4B6589C2-0290-4764-8058-9825B56B4169}" -Path "$gpoDir\MSFT" -TargetName "MSFT Windows 10 21H2 - User" -CreateIfNeeded | Out-Null
 Import-GPO -BackupId "{E4ACFC12-94D6-4565-91B7-8A37C4CB0FC4}" -Path "$gpoDir\MSFT" -TargetName "MSFT Windows Server 2022 - Domain Controller" -CreateIfNeeded | Out-Null
 Import-GPO -BackupId "{AAC7C960-51D3-4BEE-89BD-7FB10361AA16}" -Path "$gpoDir\MSFT" -TargetName "MSFT Windows Server 2022 - Domain Security" -CreateIfNeeded | Out-Null
 Import-GPO -BackupId "{20FAD6FB-7C6D-496E-801C-0434769847FF}" -Path "$gpoDir\MSFT" -TargetName "MSFT Windows Server 2022 - Member Server" -CreateIfNeeded | Out-Null
 Import-GPO -BackupId "{02B7D8F9-E7A7-470B-B16B-FED032FFD9CB}" -Path "$gpoDir\MSFT" -TargetName "MSFT SMB v1 client for pre-Win8.1/2012R2" -CreateIfNeeded | Out-Null
+```
 
-# Импорт GPO домена
+#### Импорт GPO домена
+```powershell
 Import-GPO -BackupId "{58818EE0-E49D-4B43-BAEC-EC7E7F2FEB68}" -Path "$gpoDir\Domain" -TargetName "$domain - Разрешить запись CD/DVD" -CreateIfNeeded | Out-Null
 ##### Пометка ДЛЯ ВАСЯНА - не забудь сначала добавить разрешаюшее правило для RDP в брандмауэре что бы не словить инфаркт жопы 
 Import-GPO -BackupId "{7CF733B4-9615-4873-ADA5-048D52A443DE}" -Path "$gpoDir\Domain" -TargetName "$domain - Отключение соединения с Интернетом" -CreateIfNeeded | Out-Null
@@ -103,6 +110,7 @@ Import-GPO -BackupId "{4C790A8F-920C-4404-960B-F788E38FA620}" -Path "$gpoDir\Dom
 ```
 
 ### Не используем, в новых редакциях винды LAPS встроен в систему и легаси лапс через msi больше не нужен
+```powershell
 # Создание пустых GPO (необходимо вручную добавить ПО для установки)
 #(New-GPO -Name "LAPS - Установка x86").GpoStatus = "UserSettingsDisabled"
 #(New-GPO -Name "LAPS - Установка x64").GpoStatus = "UserSettingsDisabled"
@@ -110,10 +118,8 @@ Import-GPO -BackupId "{4C790A8F-920C-4404-960B-F788E38FA620}" -Path "$gpoDir\Dom
 #Get-GPO -Name "LAPS - Установка x86" | Set-GPWmiFilterAssignment -Filter "Only x86 OS"
 #Get-GPO -Name "LAPS - Установка x64" | Set-GPWmiFilterAssignment -Filter "Only x64 OS"
 #Get-GPO -Name "MSFT SMB v1 client for pre-Win8.1/2012R2" | Set-GPWmiFilterAssignment -Filter "Windows 7-8 and Servers 2008-2012"
-
 # Создание пустых GPO (Далее по тексту НЕ используем legacy)
 (New-GPO -Name "LAPS - Конфигурация (Windows LAPS)").GpoStatus = "UserSettingsDisabled"
-
 #### Подготавливаем схему AD для LAPS
 ```powershell
 Import-Module LAPS
@@ -122,26 +128,20 @@ Update-LapsADSchema
 $DomainCN = (Get-ADDomain).DistinguishedName
 Set-LapsADComputerSelfPermission -Identity "OU=Domain Computers,$DomainCN"
 Set-LapsADComputerSelfPermission -Identity "OU=Domain Servers,$DomainCN"
-
 ## Разрешаем доменным админам смотреть пароли
 Set-LapsADReadPasswordPermission -Identity "OU=Domain Computers,$DomainCN" -AllowedPrincipals "Администраторы домена"
 Set-LapsADReadPasswordPermission -Identity "OU=Domain Servers,$DomainCN" -AllowedPrincipals "Администраторы домена"
-
 # Выставляем политику: 1. Где хранятся пароли, 2. Шифрование пароля, 3. Сложность пароля, 4. Длинна пароля, 5. Аудит пароля, после использования LAPS сразу меняем пароль, 6. Настраиваем автоматическую ротацию паролей через $ дней 
 Set-GPRegistryValue -Name "LAPS - Конфигурация (Windows LAPS)" -Key "HKLM\SOFTWARE\Policies\Microsoft\Windows\LAPS" -ValueName "BackupDirectory" -Type DWord -Value 2
 Set-GPRegistryValue -Name "LAPS - Конфигурация (Windows LAPS)" -Key "HKLM\SOFTWARE\Policies\Microsoft\Windows\LAPS" -ValueName "PasswordEncryptionEnabled" -Type DWord -Value 1
 Set-GPRegistryValue -Name "LAPS - Конфигурация (Windows LAPS)" -Key "HKLM\SOFTWARE\Policies\Microsoft\Windows\LAPS" -ValueName "PasswordComplexity" -Type DWord -Value 4
 Set-GPRegistryValue -Name "LAPS - Конфигурация (Windows LAPS)" -Key "HKLM\SOFTWARE\Policies\Microsoft\Windows\LAPS" -ValueName "PasswordLength" -Type DWord -Value 16
-
 # 5. Пометка после использования пароля LAPS он меняется, админа не выкидывет из сеанса, но следующий заход потребует снова смотреть пароль
 Set-GPRegistryValue -Name "LAPS - Конфигурация (Windows LAPS)" -Key "HKLM\SOFTWARE\Policies\Microsoft\Windows\LAPS" -ValueName "PostAuthenticationActions" -Type DWord -Value 1
 Set-GPRegistryValue -Name "LAPS - Конфигурация (Windows LAPS)" -Key "HKLM\SOFTWARE\Policies\Microsoft\Windows\LAPS" -ValueName "PasswordAgeDays" -Type DWord -Value 30
 ```
 
-
-
 #### Привязываем созданные GPO к OU
-
 ```powershell
 # DOMAIN
 New-GPLink -Name "WSUS - Настройка сервера обновлений" -Target $domainCN | Set-GPLink -Order 1 | Out-Null
@@ -238,7 +238,7 @@ New-ADGroup -Name "Администраторы леса безопасност�
 $password = "Password1234@!" | ConvertTo-SecureString -AsPlainText -Force
 New-ADUser -Name "rootts" -SamAccountName "rootts" -UserPrincipalName "rootts@domain.lab" -Path "OU=Domain Users,DC=domain,DC=lab" -AccountPassword $password -ChangePasswordAtLogon $false -Enabled $true -PasswordNeverExpires $true -PassThru
 ```
-# Добавление rootts в группы безопасности
+#### Добавление rootts в группы безопасности
 
 ```powershell
 Add-ADGroupMember -Identity "SecForestAdmins" -Members "rootts" -PassThru
