@@ -131,8 +131,14 @@ Set-LapsADComputerSelfPermission -Identity "OU=Domain Servers,$DomainCN"
 ## Разрешаем доменным админам смотреть пароли
 Set-LapsADReadPasswordPermission -Identity "OU=Domain Computers,$DomainCN" -AllowedPrincipals "Администраторы домена"
 Set-LapsADReadPasswordPermission -Identity "OU=Domain Servers,$DomainCN" -AllowedPrincipals "Администраторы домена"
+# Создаём ключ для шифрования пароля
+# Проверяем и запускаем службу KDS
+Get-Service kdssvc | Set-Service -StartupType Auto
+Start-Service kdssvc
+Start-Sleep -Seconds 5
+Add-KdsRootKey -EffectiveTime (Get-Date).AddHours(-10)
 # Выставляем политику: 1. Где хранятся пароли, 2. Шифрование пароля, 3. Сложность пароля, 4. Длинна пароля, 5. Аудит пароля, после использования LAPS сразу меняем пароль, 6. Настраиваем автоматическую ротацию паролей через $ дней 
-Set-GPRegistryValue -Name "LAPS - Конфигурация (Windows LAPS)" -Key "HKLM\SOFTWARE\Policies\Microsoft\Windows\LAPS" -ValueName "BackupDirectory" -Type DWord -Value 2
+Set-GPRegistryValue -Name "LAPS - Конфигурация (Windows LAPS)" -Key "HKLM\SOFTWARE\Policies\Microsoft\Windows\LAPS" -ValueName "BackupDirectory" -Type DWord -Value 1
 Set-GPRegistryValue -Name "LAPS - Конфигурация (Windows LAPS)" -Key "HKLM\SOFTWARE\Policies\Microsoft\Windows\LAPS" -ValueName "PasswordEncryptionEnabled" -Type DWord -Value 1
 Set-GPRegistryValue -Name "LAPS - Конфигурация (Windows LAPS)" -Key "HKLM\SOFTWARE\Policies\Microsoft\Windows\LAPS" -ValueName "PasswordComplexity" -Type DWord -Value 4
 Set-GPRegistryValue -Name "LAPS - Конфигурация (Windows LAPS)" -Key "HKLM\SOFTWARE\Policies\Microsoft\Windows\LAPS" -ValueName "PasswordLength" -Type DWord -Value 16
