@@ -239,7 +239,7 @@ Add-ADGroupMember -Identity "SecDomainAdmins" -Members "rootts" -PassThru
 
 ###### После развёртывания сервера безопасности добавить туда пользователя rootts 
 ```powershell
-    Invoke-Command -ComputerName "TrustCover" -ScriptBlock {
+    Invoke-Command -ComputerName "SecurityServer" -ScriptBlock {
     $AdminGroup = Get-LocalGroup | Where-Object { $_.SID -like "S-1-5-32-544" }
       Add-LocalGroupMember -Group $AdminGroup -Member "domain\rootts"
 }
