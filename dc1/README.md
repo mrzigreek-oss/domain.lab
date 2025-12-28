@@ -9,7 +9,7 @@ Rename-Computer DC1
 New-NetIPAddress -InterfaceAlias "Ethernet0" -IPAddress 192.168.69.1 -PrefixLength 24 -DefaultGateway 192.168.69.254
 Set-DnsClientServerAddress -InterfaceAlias "Ethernet0" -ServerAddresses 127.0.0.1
 New-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip6\Parameters\" -Name "DisabledComponents" -Value 0xffffffff -PropertyType "DWord"
-# В новых редакциях активация не сработает, разворачиваем КМС сервер на линухе https://github.com/Wind4/vlmcsd
+dism /online /set-edition:ServerStandard /productkey:VDYBN-27WPP-V4HQT-9VMD4-VMK7H /accepteula
 Restart-Computer -Confirm
 ```
 
