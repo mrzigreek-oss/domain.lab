@@ -9,7 +9,10 @@ Rename-Computer DC1
 New-NetIPAddress -InterfaceAlias "Ethernet0" -IPAddress 192.168.69.1 -PrefixLength 24 -DefaultGateway 192.168.69.254
 Set-DnsClientServerAddress -InterfaceAlias "Ethernet0" -ServerAddresses 127.0.0.1
 New-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip6\Parameters\" -Name "DisabledComponents" -Value 0xffffffff -PropertyType "DWord"
-dism /online /set-edition:ServerStandard /productkey:VDYBN-27WPP-V4HQT-9VMD4-VMK7H /accepteula
+# GLVK ключ для Windows Server 2022 Standard
+slmgr.vbs -ipk VDYBN-27WPP-V4HQT-9VMD4-VMK7H
+# Если надо конвертировать windows server 2022 standart eva в standart 
+# dism /online /set-edition:ServerStandard /productkey:VDYBN-27WPP-V4HQT-9VMD4-VMK7H /accepteula
 Restart-Computer -Confirm
 ```
 
