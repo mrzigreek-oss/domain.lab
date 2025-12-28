@@ -4,28 +4,36 @@
 
 Этот материал опирается на публично открытые программные продукты и не преследует цели нарушения норм действующего законодательства и правил лицензирования ПО.
 
-Порядок сборки пакета *vlmcsd* под [Debian 11](https://blog.it-kb.ru/2022/09/29/kms-activation-server-for-microsoft-windows-server-and-office-based-on-debian-linux-11-bullseye-and-vlmcsd-service-package/) и под [CentOS 8](https://winitpro.ru/index.php/2021/10/28/kms-server-vlmcsd-na-linux-dlya-aktivacii-windows-office/).
+#### Всё уже установлено и подготовлено к запуску 
+#### После миграции виртуалки в proxmox переводим интерфейс в нужный статус
+```bash
+ip a 
+#смотрим наш интерфейс
+nano /etc/network/interfaces
+#меняем интерфейс на тот что нужен нам
+reboot
+```
+#### Создаём на контроллере домена запись в DNS с этой машиной, если не создалась автоматически, затем создаём SRV запись через оснастку
+Правой кнопкой по domain.lab -> Другие новые записи
+Выберите тип Расположение службы (SRV) -> Создать запись.
+Заполните следующим образом:
+    **Service:** `_vlmcs` (пишите руками, этого нет в списке).
+    **Protocol:** `_tcp`
+    **Port number:** `1688`
+    **Host offering this service:** `kms-server.domain.lab` 
 
-#### Порядок установки
+#### Заводим виртуалку в домен, если хотите создайте пользователя linuxroot для работы с виртуалкой, но я виртуалку после настройки трогать не буду. и после настроек закрываем ssh для рута. Не забудьте удалить пользователя user
 
 ```bash
-# Устанавливаем пакет
-dpkg -i vlmcsd_1113_amd64.deb
-
-# Создаем папку для логов и пользователя для службы
-mkdir /var/log/vlmcsd
-useradd -s /usr/sbin/nologin -r -M vlmcsd
-chown -R vlmcsd:vlmcsd /var/log/vlmcsd
-
-# Указываем LogFile = /var/log/vlmcsd/vlmcsd.log
-nano /etc/vlmcsd/vlmcsd.ini
-
-# Указываем vlmcsd в [Service] для User и Group
-systemctl edit vlmcsd.service
-systemctl daemon-reload
-systemctl restart vlmcsd.service
-
-# проверяем порты и логи
-ss -tulnp | grep 1688
-tail /var/log/vlmcsd/vlmcsd.log
+realm discover domain.lab
+realm join -U Administrator domain.lab
+#если всё без ошибок проверяем результат
+realm list
+#отрезаем руту возможность захода через ssh
+nano /etc/ssh/sshd_config`
+#находим строчку PermitRootLogin, убираем коментирование и исправляем - PermitRootLogin no
 ```
+
+
+# Поздравляю - вы великолепны!
+<img width="974" height="485" alt="image" src="https://github.com/user-attachments/assets/7f0e8a76-8b37-474a-8e51-845a3580cb07" />
