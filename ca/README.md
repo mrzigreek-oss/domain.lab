@@ -10,6 +10,8 @@ Set-DnsClientServerAddress -InterfaceAlias "Ethernet0" -ServerAddresses ("192.16
 New-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip6\Parameters\" -Name "DisabledComponents" -Value 0xffffffff -PropertyType "DWord"
 # GLVK ключ для Windows Server 2022 Standard
 slmgr.vbs -ipk VDYBN-27WPP-V4HQT-9VMD4-VMK7H
+# Если надо конвертировать windows server 2022 standart eva в standart 
+# dism /online /set-edition:ServerStandard /productkey:VDYBN-27WPP-V4HQT-9VMD4-VMK7H /accepteula
 Add-Computer -NewName "CA" -DomainName "domain.lab" -OUPath "OU=Domain Servers,DC=domain,DC=lab" -Credential "Администратор@domain.lab" -Restart -Force
 ```
 
