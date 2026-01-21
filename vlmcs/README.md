@@ -31,7 +31,7 @@ realm join -U Administrator domain.lab
 #если всё без ошибок проверяем результат
 realm list
 #отрезаем руту возможность захода через ssh
-nano /etc/ssh/sshd_config`
+nano /etc/ssh/sshd_config
 #находим строчку PermitRootLogin, убираем коментирование и исправляем - PermitRootLogin no
 ```
 
