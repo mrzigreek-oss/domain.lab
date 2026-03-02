@@ -14,6 +14,18 @@ nano /etc/network/interfaces
 #меняем интерфейс на тот что нужен нам
 reboot
 ```
+
+#### если не хотим работать с dhcp а выставляем статику в interfaces выставляем статику
+```bash
+nano /etc/network/interfaces
+auto ens18
+iface ens18 inet static
+    address 172.1.1.3
+    netmask 255.255.255.0
+    gateway 172.1.1.34
+    dns-nameservers 172.1.1.2 172.1.1.34
+```
+
 #### Создаём на контроллере домена запись в DNS с этой машиной, если не создалась автоматически, затем создаём SRV запись через оснастку
 Правой кнопкой по domain.lab -> Другие новые записи
 Выберите тип Расположение службы (SRV) -> Создать запись.
@@ -34,6 +46,8 @@ realm list
 nano /etc/ssh/sshd_config
 #находим строчку PermitRootLogin, убираем коментирование и исправляем - PermitRootLogin no
 ```
+
+
 
 
 # Поздравляю - вы великолепны!
