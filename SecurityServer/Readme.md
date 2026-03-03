@@ -37,5 +37,5 @@ Invoke-Command -ComputerName "SecServerBd" -ScriptBlock {
 ### *Важная пометка 2* Как отключить пользователям доступ к локальному центру управления. 
 ```powershell
 Переходим по путиC:\Program Files\InfoCode\Trust Cover\Client\Components\Control Center, находим нашу Medusa.exe, заходим в свойства отключаем наследование и выставляем дискредиционку на админов, удаляя при этом группу ВСЕ
-<img width="1170" height="623" alt="image" src="https://github.com/user-attachments/assets/9f440184-791c-4091-8b2e-4049223bf61e" />
 ```
+<img width="1170" height="623" alt="image" src="https://github.com/user-attachments/assets/9f440184-791c-4091-8b2e-4049223bf61e" />
