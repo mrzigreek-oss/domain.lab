@@ -5,12 +5,12 @@
 Установка сетевых параметров, имени компьютера, включение в домен
 
 ```powershell
-New-NetIPAddress -InterfaceAlias "Ethernet0" -IPAddress 192.168.69.3 -PrefixLength 24 -DefaultGateway 192.168.69.254
-Set-DnsClientServerAddress -InterfaceAlias "Ethernet0" -ServerAddresses ("192.168.69.1","192.168.69.2")
+New-NetIPAddress -InterfaceAlias "Ethernet0" -IPAddress 172.1.1.5 -PrefixLength 24 -DefaultGateway 172.1.1.1
+Set-DnsClientServerAddress -InterfaceAlias "Ethernet0" -ServerAddresses 172.1.1.2
 New-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip6\Parameters\" -Name "DisabledComponents" -Value 0xffffffff -PropertyType "DWord"
 # GLVK ключ для Windows Server 2022 Standard
 slmgr.vbs -ipk VDYBN-27WPP-V4HQT-9VMD4-VMK7H
-# Если надо конвертировать windows server 2022 standart eva в standart 
+# Если надо конвертировать windows server 2022 в standart
 # dism /online /set-edition:ServerStandard /productkey:VDYBN-27WPP-V4HQT-9VMD4-VMK7H /accepteula
 Add-Computer -NewName "CA" -DomainName "domain.lab" -OUPath "OU=Domain Servers,DC=domain,DC=lab" -Credential "Администратор@domain.lab" -Restart -Force
 ```
@@ -18,17 +18,20 @@ Add-Computer -NewName "CA" -DomainName "domain.lab" -OUPath "OU=Domain Servers,D
 ## Настройка Центра Сертификации
 
 #### Установка CA без веб-портала (рекомендуемый вариант)
+#### ВАЖНО! Root-CA ставлю отдельно на linux машину с последующим перемещением OVA на флеш накопитель для предотвращения компрометации корневого сертификата (-CAType EnterpriseSubordinateCA вместо CAType EnterpriseRootCA)
+
+#### Установка CA без веб-портала (использовать не буду т.к. выдаю сертификаты на сетевое оборудование)
 
 ```powershell
-Install-WindowsFeature ADCS-Cert-Authority
-Install-ADcsCertificationAuthority -CAType EnterpriseRootCA -CACommonName "domain.lab-CA" -CADistinguishedNameSuffix "DC=domain,DC=lab" -CryptoProviderName "RSA#Microsoft Software Key Storage Provider" -KeyLength 2048 -HashAlgorithmName SHA256 -ValidityPeriod Years -ValidityPeriodUnits 100 -DatabaseDirectory "C:\windows\system32\certLog" -LogDirectory "C:\windows\system32\CertLog" -Force
+Install-WindowsFeature ADCS-Cert-Authority -IncludeManagementTools -Source "D:\sources\sxs"
+Install-ADcsCertificationAuthority -CAType EnterpriseSubordinateCA -CACommonName "domain.lab-Issuing-CA" -CADistinguishedNameSuffix "DC=domain,DC=lab" -CryptoProviderName "RSA#Microsoft Software Key Storage Provider" -KeyLength 2048 -HashAlgorithmName SHA256 -ValidityPeriod Years -ValidityPeriodUnits 5 -DatabaseDirectory "C:\windows\system32\certLog" -LogDirectory "C:\windows\system32\CertLog" -Force
 ```
 
 #### Установка CA с веб-порталом
 
 ```powershell
-Install-WindowsFeature ADCS-Cert-Authority,ADCS-Web-Enrollment -IncludeManagementTools
-Install-ADcsCertificationAuthority -CAType EnterpriseRootCA -CACommonName "domain.lab-CA" -CADistinguishedNameSuffix "DC=domain,DC=lab" -CryptoProviderName "RSA#Microsoft Software Key Storage Provider" -KeyLength 2048 -HashAlgorithmName SHA256 -ValidityPeriod Years -ValidityPeriodUnits 100 -DatabaseDirectory "C:\windows\system32\certLog" -LogDirectory "C:\windows\system32\CertLog" -Force
+Install-WindowsFeature ADCS-Cert-Authority,ADCS-Web-Enrollment,ADCS-Cert-Enrollment-Web-Service,ADCS-Cert-Enrollment-Policy-Web-Service,ADCS-Device-Enrollment-Service,ADCS-Online-Responder -IncludeManagementTools -Source "D:\sources\sxs"
+Install-ADcsCertificationAuthority -CAType EnterpriseSubordinateCA -CACommonName "domain.lab-Issuing-CA" -CADistinguishedNameSuffix "DC=domain,DC=lab" -CryptoProviderName "RSA#Microsoft Software Key Storage Provider" -KeyLength 2048 -HashAlgorithmName SHA256 -ValidityPeriod Years -ValidityPeriodUnits 5 -DatabaseDirectory "C:\windows\system32\certLog" -LogDirectory "C:\windows\system32\CertLog" -Force
 # Настройка веб-портала
 Install-AdcsWebEnrollment -Force
 Get-ChildItem Cert:\LocalMachine\My\ # берем тут отпечаток
@@ -38,10 +41,10 @@ Set-WebConfigurationProperty -PSPath "MACHINE/WEBROOT/APPHOST" -Location "Defaul
 
 #### Настройка CA 
 
-Разрешить выдачу сертификатов на 100 лет
+Разрешить выдачу сертификатов на 5 лет
 
 ```powershell
-Set-ItemProperty -Path "registry::HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\services\CertSvc\Configuration\domain.lab-CA" -Name "ValidityPeriodUnits" -Value 100
+Set-ItemProperty -Path "registry::HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\services\CertSvc\Configuration\domain.lab-Issuing-CA" -Name "ValidityPeriodUnits" -Value 5
 ```
 
 Включить SAN атрибуты (для того чтобы в запросе через веб-портал можно было запрашивать дополнительное имя субъекта, например: `san:dns=web.domain.lab&dns=www.web.domain.lab`)
@@ -74,7 +77,8 @@ Add-DnsServerResourceRecordCName -Name "pki" -HostNameAlias "ca.domain.lab" -Zon
 `Диспетчер служб IIS` -> `Default Web Site` -> `Добавить виртуальный каталог` -> В псевдоним пишем `pki`. В физическом пути пишем `C:\pki`
 
 Включам анонимный доступ к виртуальной директории 
-`Редактировать разрешения` -> `Безопасность` -> `Изменить` -> `Добавить...` -> `АНОНИМНЫЙ ВХОД; Все`
+`Редактировать разрешения` -> `Безопасность` -> `Изменить` -> `Добавить...` -> `АНОНИМНЫЙ ВХОД; Все` 
+**Разрешения на папку ТОЛЬКО ЧТЕНИЕ и выполоне**
 
 Выбираем `Фильтрация запросов` -> `Расширения имен файлов` -> `Изменить параметры` -> `Разрешить двойное преобразование`
 
@@ -123,6 +127,7 @@ http://pki.domain.lab/pki/<ServerDNSName>_<CaName><CertificateName>.crt
 ```
 Выбираем 
 - `Включать в AIA-расширение выданных сертификатов`
+- `Публиковать сертификат по этому адресу`
 
 **Копириуем списки отзыва сертификатов**
 
@@ -159,4 +164,27 @@ certreq -submit -attrib "CertificateTemplate:ИМЯ_ШАБЛОНА"
 - C указанием шаблона и SAN
 ```
 certreq -submit -attrib "CertificateTemplate:ИМЯ_ШАБЛОНА\nsan:dns=АДРЕС_СЕРВЕРА&ipaddress=IP_СЕРВЕРА"
+```
+
+- Для proxmox
+```
+certreq -submit -attrib "CertificateTemplate:WebServer`nsan:dns=pve.domain.lab&ipaddress=192.168.254.201" C:\csr\pve.csr
+certreq -retrieve *** C:\certs\pve.crt
+```
+
+- Для ILO/iDRAC на будующее для Intel SR5600
+```
+certreq -submit -attrib "CertificateTemplate:WebServer`nsan:dns=ilo.domain.lab&ipaddress=192.168.254.200" C:\csr\ilo.csr
+certreq -retrieve *** C:\certs\ilo.crt
+```
+
+- Для GW по нескольким
+```
+certreq -submit -attrib "CertificateTemplate:WebServer`nsan:dns=GW.domain.lab&ipaddress=192.168.254.1&ipaddress=172.1.1.1&ipaddress=10.10.0.100" C:\csr\gw.csr
+certreq -retrieve *** C:\certs\gw.crt
+```
+- Для R1 по нескольким ip
+```
+certreq -submit -attrib "CertificateTemplate:WebServer`nsan:dns=R1.domain.lab&ipaddress=192.168.254.210&ipaddress=164.11.15.210&ipaddress=10.10.0.210" C:\csr\switch.csr
+certreq -retrieve *** C:\certs\switch.crt
 ```
