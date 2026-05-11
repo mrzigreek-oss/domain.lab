@@ -1,3 +1,4 @@
+
 # domain.lab
 
 Приведен пример создания локальной вычислительной сети небольшой организации на базе **Microsoft Active Directory** и **VMware vSphere 7**
@@ -8,7 +9,7 @@
 - Windows серверы `Windows Server 2022`
 - Linux серверы `Debian 11`
 
-![domain.lab](domain.lab.png)
+<img width="2552" height="1862" alt="1" src="https://github.com/user-attachments/assets/42ceea5d-289c-4809-a5e0-11dea750787b" />
 
 ## Полезные ссылки
 
